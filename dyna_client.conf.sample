@@ -1,0 +1,8 @@
+#
+# /etc/dyna_client.conf 
+# 
+sitename = SITENAME
+password = myPassword
+ipaddr   = local
+type     = sha1
+server   = lilly.ping.de:5353
