@@ -1,0 +1,123 @@
+#!/usr/bin/perl -w
+#
+## $Id$
+#
+# This program is Open Source software. It may be distributed under the
+# terms of the GNU General Public License:
+#								http://www.gnu.org/copyleft/gpl.html
+#
+## Report bugs to <flori@ping.de>.
+#
+
+use strict;
+use Digest::SHA1 qw(sha1_hex);
+use Digest::MD5 qw(md5_hex);
+use File::Basename;
+use IO::Socket;
+use constant DEBUG => 1;
+
+sub in($);
+sub out($$);
+sub bake_cookie(@);
+sub make_response_string(@);
+sub make_response($$$$$);
+sub usage;
+sub is_ipad($);
+
+my @err;
+my $site = shift or push @err, "Need a sitename as first argument!";
+$site =~ s/\.ping\.de$//;
+my $pass = shift or push @err, "Need a password as second argument!";
+my $ipad = shift or push @err, "Need an ip address or 'local' as third argument!";
+my $sprt = shift || "lilly.ping.de:5353";
+my $type = shift || "sha1";
+bake_cookie($type) or push @err, "Invalid type of hash: '$type'!";
+
+usage(@err) if @err;
+
+{
+	my $s;
+	if ($ipad ne "local") {
+		is_ipad($ipad) or die "IP address '$ipad' not valid!";
+	}
+	$s = new IO::Socket::INET($sprt) or die "Couldn't connect '$sprt'!"
+		unless DEBUG > 1;
+	my $line = in($s);
+	out($s, make_response($type, $site, $pass, $line, $ipad));
+	$line = in($s);
+	exit ($line eq "ACK" ? 0 : 1);
+}
+
+sub is_ipad($) {
+        my $ipad = shift or return;
+
+        my @i = $ipad =~ /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/ or return;
+        $_ > 255 and return foreach @i;
+        return $ipad;
+}
+
+sub in($) {
+	my $s = shift;
+
+	$s = \*STDIN if DEBUG > 1;
+	defined (my $line = <$s>) or die "No line received!";	
+	chomp($line);
+	DEBUG and print STDERR ">>> $line\n";
+	return $line;
+}
+
+sub out($$) {
+	my $s = shift;
+	my $line = shift;
+
+	$s = \*STDOUT if DEBUG > 1;
+	print $s "$line\n" and DEBUG and print STDERR "<<< $line\n";
+}
+
+sub bake_cookie(@) {
+
+	for ($_[0]) {
+		/^sha1$/ and return sha1_hex(join "" => @_);
+		/^md5$/ and return md5_hex(join "" => @_);
+	}
+}
+
+sub make_response_string(@) { "RES=" . join "," => @_ } 
+
+sub make_response($$$$$) {
+	my $type = shift;
+	my $site = shift;
+	my $pass = shift;
+	my $line = shift;
+	my $ipad = shift;
+
+	my $c_cookie;
+	($c_cookie) = $line =~ /^CHA=(.+)$/
+		or die "Format of challenge '$line' not 'CHA=COOKIE'!";
+	make_response_string($type,
+		bake_cookie($type, $site, $pass, $c_cookie, $ipad), $site, $ipad);
+}
+
+sub usage {
+	my @usage = @_;
+
+	my $basename = basename $0;
+	$site ||= "undef";
+	$ipad ||= "undef";
+	push @usage, <<"__USAGE";
+
+Usage: $basename SITENAME PASSWORD IPADDR|local [SERVER:PORT] [HASHTYPE]
+
+  SITENAME       = your sitename without domain ($site)
+  PASSWORD       = your admin password (***secret***)
+  IPADDR/local  = the dynamic IP address or 'local' for the local ip ($ipad)
+                   0.0.0.0 zaps the old dns entry for SITENAME
+  SERVER:PORT    = dynadns server and port to connect to ($sprt)
+  HASHTYPE       = md5 | sha1 ($type)
+
+Report bugs to <flori\@ping.de>.
+__USAGE
+
+	die join "\n" => @usage;
+}
+	# vim: set cin sw=4 ts=4:
