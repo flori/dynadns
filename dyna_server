@@ -104,7 +104,8 @@ sub update_data($$) {
 		};
 		print NEW $_;
 	}
-	print NEW "=$site.$DYN_DOMAIN:$ipad:$DNS_TTL\n" unless $updated;
+	print NEW "=$site.$DYN_DOMAIN:$ipad:$DNS_TTL\n"
+		unless $updated or to_delete($ipad);
 	close NEW;
 	close DATA;
 	rename $PATH{data} => "$PATH{data}.old"
