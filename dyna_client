@@ -108,12 +108,12 @@ sub read_conf($) {
 			hashtype		=> 'type',
 			server_port		=> 'server',
 		);
+		my $line_re = qr/^(@{[join '|' => keys %params]})\s*=\s*(.+)/i;
 		while (defined (my $line = <CFG>)) {
 			no strict 'refs';
 			$line =~ s/^\s*(.*?)\s*$/$1/;
 			next if $line =~ /^#/ or $line eq '';
-			my ($key, $val) =
-				$line =~ /^(@{[join '|' => keys %params]})\s*=\s*(.+)/i;
+			my ($key, $val) = $line =~ $line_re;
 			$key = lc $key;
 			if (defined $key) {
 				${$params{$key}} = $val;
