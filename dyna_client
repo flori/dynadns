@@ -10,11 +10,25 @@
 #
 
 use strict;
-use Digest::SHA1 qw(sha1_hex);
-use Digest::MD5 qw(md5_hex);
 use File::Basename;
 use IO::Socket;
 use constant DEBUG => 1;
+
+use vars qw(@types @err $site $pass $ipad $sprt $type);
+
+BEGIN {
+	eval "require Digest::SHA1";
+	unless ($@) {
+		Digest::SHA1->import('sha1_hex');
+		push @types, 'sha1';
+	}
+	eval "require Digest::MD5";
+	unless ($@) {
+		Digest::MD5->import('md5_hex');
+		push @types, 'md5';
+	}
+	@types or die "Please install Digest::SHA1 or Digest::MD5 as a module!";
+}
 
 sub in($);
 sub out($$);
@@ -23,29 +37,95 @@ sub make_response_string(@);
 sub make_response($$$$$);
 sub usage;
 sub is_ipad($);
+sub read_conf($);
+sub configure_script;
 
-my @err;
-my $site = shift or push @err, "Need a sitename as first argument!";
-$site =~ s/\.ping\.de$//;
-my $pass = shift or push @err, "Need a password as second argument!";
-my $ipad = shift or push @err, "Need an ip address or 'local' as third argument!";
-my $sprt = shift || "lilly.ping.de:5353";
-my $type = shift || "sha1";
-bake_cookie($type) or push @err, "Invalid type of hash: '$type'!";
-
-usage(@err) if @err;
-
+configure_script;
 {
 	my $s;
-	if ($ipad ne "local") {
-		is_ipad($ipad) or die "IP address '$ipad' not valid!";
-	}
 	$s = new IO::Socket::INET($sprt) or die "Couldn't connect '$sprt'!"
 		unless DEBUG > 1;
 	my $line = in($s);
 	out($s, make_response($type, $site, $pass, $line, $ipad));
 	$line = in($s);
 	exit ($line eq "ACK" ? 0 : 1);
+}
+
+sub configure_script {
+	local *_ = *ARGV;
+	
+	# Defaults
+	$sprt = "lilly.ping.de:5353";
+	$type = $types[0];
+
+	# Check parameters/configuration
+	$site = shift || '';
+	$site or push @err, "Need a sitename or '-c' as first argument!";
+	if ($site eq '-c') {
+		if (my $cfg = shift) {
+			read_conf $cfg;
+		} else {
+			push @err, "Need a configurtion file if first argument is '-c'!";
+		}
+ 		usage(@err) if @err;
+	} else {
+		$pass = shift if @ARGV;
+		$ipad = shift if @ARGV;
+		$sprt = shift if @ARGV;
+		$type = shift if @ARGV; 
+	}
+	$pass or push @err, "Need a password as second argument!";
+	if ($ipad) {
+		if ($ipad ne "local") {
+			is_ipad($ipad) or push @err, "IP address '$ipad' not valid!";
+		}
+	} else {
+		push @err, "Need an ip address or 'local' as third argument!";
+	}
+	$site =~ s/\.ping\.de$//;
+	bake_cookie($type) or push @err, "Invalid type of hash: '$type'!";
+
+	usage(@err) if @err;
+}
+
+sub read_conf($) {
+	my $file = shift;
+
+	if (-r $file) {
+		my $mode = (stat _)[2];
+		if (($mode & 0777) & ~0700) {
+			push @err, "Configuration file isn't only readable by user!";
+			return;
+		}
+		unless (open CFG, $file) {
+			push @err, "Unable to open Configuration file for reading: $!!";
+			return;
+		}
+		my %params = (
+			sitename		=> 'site',
+			password		=> 'pass',
+			ipaddress		=> 'ipad',
+			hashtype		=> 'type',
+			server_port		=> 'server',
+		);
+		while (defined (my $line = <CFG>)) {
+			no strict 'refs';
+			$line =~ s/^\s*(.*?)\s*$/$1/;
+			next if $line =~ /^#/ or $line eq '';
+			my ($key, $val) =
+				$line =~ /^(@{[join '|' => keys %params]})\s*=\s*(.+)/i;
+			$key = lc $key;
+			if (defined $key) {
+				${$params{$key}} = $val;
+			} else {
+				push @err, "Line $. is unknown format: $_";
+				last;
+			}
+		}
+	} else {
+		push @err, "Configuration file does not exist or is unreadable!";
+	}
+	usage(@err) if @err;
 }
 
 sub is_ipad($) {
@@ -106,14 +186,20 @@ sub usage {
 	$ipad ||= "undef";
 	push @usage, <<"__USAGE";
 
-Usage: $basename SITENAME PASSWORD IPADDR|local [SERVER:PORT] [HASHTYPE]
+Usage: $basename SITENAME PASSWORD IPADDRESS|local [SERVER_PORT] [HASHTYPE]
+Usage: $basename -c CONFIG
+
+The paramaters are:
 
   SITENAME       = your sitename without domain ($site)
   PASSWORD       = your admin password (***secret***)
-  IPADDR/local  = the dynamic IP address or 'local' for the local ip ($ipad)
+  IPADDRESS/local = the dynamic IP address or 'local' for the local ip ($ipad)
                    0.0.0.0 zaps the old dns entry for SITENAME
-  SERVER:PORT    = dynadns server and port to connect to ($sprt)
+  SERVER_PORT    = server and port in format "server:port" to connect to ($sprt)
   HASHTYPE       = md5 | sha1 ($type)
+  CONFIG         = configuration file to use
+
+These parameters can also be used in the configuration file CONFIG.
 
 Report bugs to <flori\@ping.de>.
 __USAGE
