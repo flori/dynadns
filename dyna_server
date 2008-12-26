@@ -104,16 +104,17 @@ sub update_data($$) {
         /^[.']/ and next;    # This has to be in $DATA_HEADER
         /^(=|\+\*\.)$site\.$DYN_DOMAIN:/ and do {
             my $prefix = $1;
-            $updated++ and next;
+            $updated++;
             next if to_delete($ipad);
             print NEW "$prefix$site.$DYN_DOMAIN:$ipad:$DNS_TTL\n";
             next;
         };
         print NEW $_;
     }
-    print NEW "=$site.$DYN_DOMAIN:$ipad:$DNS_TTL\n",
-        "+*.$site.$DYN_DOMAIN:$ipad:$DNS_TTL\n"
-        unless $updated or to_delete($ipad);
+    unless ($updated or to_delete($ipad)) {
+        print NEW "=$site.$DYN_DOMAIN:$ipad:$DNS_TTL\n",
+            "+*.$site.$DYN_DOMAIN:$ipad:$DNS_TTL\n"
+    }
     close NEW;
     close DATA;
     rename $PATH{data} => "$PATH{data}.old"
