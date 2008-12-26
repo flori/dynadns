@@ -102,15 +102,17 @@ sub update_data($$) {
     my $updated = 0;
     while (<DATA>) {
         /^[.']/ and next;    # This has to be in $DATA_HEADER
-        /^=$site\.$DYN_DOMAIN:/ and do {
+        /^(=|\+\*\.)$site\.$DYN_DOMAIN:/ and do {
+            my $prefix = $1;
             $updated++ and next;
             next if to_delete($ipad);
-            print NEW "=$site.$DYN_DOMAIN:$ipad:$DNS_TTL\n";
+            print NEW "$prefix$site.$DYN_DOMAIN:$ipad:$DNS_TTL\n";
             next;
         };
         print NEW $_;
     }
-    print NEW "=$site.$DYN_DOMAIN:$ipad:$DNS_TTL\n"
+    print NEW "=$site.$DYN_DOMAIN:$ipad:$DNS_TTL\n",
+        "+*.$site.$DYN_DOMAIN:$ipad:$DNS_TTL\n"
         unless $updated or to_delete($ipad);
     close NEW;
     close DATA;
