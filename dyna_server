@@ -1,10 +1,11 @@
 #!/usr/bin/perl -Tw
+# vim: set cin sw=4 ts=4:
 #
 ## $Id: dyna_server,v 1.2 2002/02/18 10:37:34 flori Exp $
 #
 # This program is Open Source software. It may be distributed under the
 # terms of the GNU General Public License:
-#								http://www.gnu.org/copyleft/gpl.html
+#                                http://www.gnu.org/copyleft/gpl.html
 #
 ## Report bugs to <flori@ping.de>.
 #
@@ -42,17 +43,17 @@ $SIG{__DIE__} = \&die_callback;
 $| = 1;
 
 my $LOG_LEVEL = QUIET;
-my ($TINYDNS_ROOT)	= $ENV{ROOT} =~ /(.+)/;
+my ($TINYDNS_ROOT)    = $ENV{ROOT} =~ /(.+)/;
 die "Need ROOT variable in environment to find tinydns root directory!"
-	unless defined $TINYDNS_ROOT;
+    unless defined $TINYDNS_ROOT;
 my %PATH = (
-	make		=> "/usr/bin/make",
-	data		=> "$TINYDNS_ROOT/data",
-	lock		=> "$TINYDNS_ROOT/lock",
-		   );
-my $CHALLENGE_TYPE	= 'sha1';
-my $DYN_DOMAIN		= "dyna.$domain";
-my $DNS_TTL			= 60;
+    make        => "/usr/bin/make",
+    data        => "$TINYDNS_ROOT/data",
+    lock        => "$TINYDNS_ROOT/lock",
+           );
+my $CHALLENGE_TYPE    = 'sha1';
+my $DYN_DOMAIN        = "dyna.$domain";
+my $DNS_TTL            = 60;
 my $DATA_HEADER = <<"__DATA_HEADER";
 .$DYN_DOMAIN:83.97.42.9:a:259200
 'a.ns.$DYN_DOMAIN:Powered by djbdns - http\072//cr.yp.to/djbdns.html
@@ -60,74 +61,74 @@ __DATA_HEADER
 # '
 
 {
-	my $c_cookie = bake_cookie($CHALLENGE_TYPE, $^T, $$, rand)
-		or die "Couldn't bake cookie!";
-	out(make_challenge($c_cookie));
+    my $c_cookie = bake_cookie($CHALLENGE_TYPE, $^T, $$, rand)
+        or die "Couldn't bake cookie!";
+    out(make_challenge($c_cookie));
 
-	my $line = in;
-	my ($valid, $site, $ipad) = validate_response($line, $c_cookie);
-	if ($valid) {
-		$ipad eq "local" and $ipad = $ENV{TCPREMOTEIP};
-		update_data($site, $ipad);
-		out("ACK");
-		warn dbg($LOG_LEVEL, "$site.$DYN_DOMAIN ",
-			to_delete($ipad) ? "zapping" : "-> ",
-			($LOG_LEVEL == VERBOSE ? $ipad : 'x.x.x.x'),
-			": ok.\n");
-	} else {
-		out("NAK");
-		warn dbg(VERBOSE, "$site.$DYN_DOMAIN ",
-			to_delete($ipad) ? "zapping" : "-> $ipad", ": denied!\n");
-	}
+    my $line = in;
+    my ($valid, $site, $ipad) = validate_response($line, $c_cookie);
+    if ($valid) {
+        $ipad eq "local" and $ipad = $ENV{TCPREMOTEIP};
+        update_data($site, $ipad);
+        out("ACK");
+        warn dbg($LOG_LEVEL, "$site.$DYN_DOMAIN ",
+            to_delete($ipad) ? "zapping" : "-> ",
+            ($LOG_LEVEL == VERBOSE ? $ipad : 'x.x.x.x'),
+            ": ok.\n");
+    } else {
+        out("NAK");
+        warn dbg(VERBOSE, "$site.$DYN_DOMAIN ",
+            to_delete($ipad) ? "zapping" : "-> $ipad", ": denied!\n");
+    }
 }
 
 exit 0;
 
 sub update_data($$) {
-	my $site = shift;
-	my $ipad = shift;
+    my $site = shift;
+    my $ipad = shift;
 
-	return unless is_ipad($ipad);
-	chdir dirname($PATH{data})
-		or die "Couldn't chdir '$PATH{data}': $!";
-	local (*LOCK, *DATA, *NEW);
-	open LOCK, ">$PATH{lock}" or die "Couldn't open '$PATH{lock}' to write: $!";
-	flock LOCK, LOCK_EX or die "Couldn't flock '$PATH{lock}', LOCK_EX: $!";
-	open DATA, "<$PATH{data}"
-		or die "Couldn't open '$PATH{data}' to read: $!";
-	open NEW, ">$PATH{data}.new"
-		or die "Couldn't open '$PATH{data}.new' to write: $!";
-	print NEW $DATA_HEADER;
-	my $updated = 0;
-	while (<DATA>) {
-		/^[.']/ and next;	# This has to be in $DATA_HEADER
-		/^=$site\.$DYN_DOMAIN:/ and do {
-			$updated++ and next;
-			next if to_delete($ipad);
-			print NEW "=$site.$DYN_DOMAIN:$ipad:$DNS_TTL\n";
-			next;
-		};
-		print NEW $_;
-	}
-	print NEW "=$site.$DYN_DOMAIN:$ipad:$DNS_TTL\n"
-		unless $updated or to_delete($ipad);
-	close NEW;
-	close DATA;
-	rename $PATH{data} => "$PATH{data}.old"
-		or die "Couldn't rename '$PATH{data}' => '$PATH{data}.old': $!";
-	rename "$PATH{data}.new" => $PATH{data}
-		or die "Couldn't rename '$PATH{data}.new' => '$PATH{data}': $!";
-	system "$PATH{make} >/dev/null 2>&1"
-		and die "Couldn't $PATH{make} new dns data: $?";
-	flock LOCK, LOCK_UN or die "Couldn't flock '$PATH{lock}', LOCK_UN: $!";
-	close LOCK;
-	return 1;
+    return unless is_ipad($ipad);
+    chdir dirname($PATH{data})
+        or die "Couldn't chdir '$PATH{data}': $!";
+    local (*LOCK, *DATA, *NEW);
+    open LOCK, ">$PATH{lock}" or die "Couldn't open '$PATH{lock}' to write: $!";
+    flock LOCK, LOCK_EX or die "Couldn't flock '$PATH{lock}', LOCK_EX: $!";
+    open DATA, "<$PATH{data}"
+        or die "Couldn't open '$PATH{data}' to read: $!";
+    open NEW, ">$PATH{data}.new"
+        or die "Couldn't open '$PATH{data}.new' to write: $!";
+    print NEW $DATA_HEADER;
+    my $updated = 0;
+    while (<DATA>) {
+        /^[.']/ and next;    # This has to be in $DATA_HEADER
+        /^=$site\.$DYN_DOMAIN:/ and do {
+            $updated++ and next;
+            next if to_delete($ipad);
+            print NEW "=$site.$DYN_DOMAIN:$ipad:$DNS_TTL\n";
+            next;
+        };
+        print NEW $_;
+    }
+    print NEW "=$site.$DYN_DOMAIN:$ipad:$DNS_TTL\n"
+        unless $updated or to_delete($ipad);
+    close NEW;
+    close DATA;
+    rename $PATH{data} => "$PATH{data}.old"
+        or die "Couldn't rename '$PATH{data}' => '$PATH{data}.old': $!";
+    rename "$PATH{data}.new" => $PATH{data}
+        or die "Couldn't rename '$PATH{data}.new' => '$PATH{data}': $!";
+    system "$PATH{make} >/dev/null 2>&1"
+        and die "Couldn't $PATH{make} new dns data: $?";
+    flock LOCK, LOCK_UN or die "Couldn't flock '$PATH{lock}', LOCK_UN: $!";
+    close LOCK;
+    return 1;
 }
 
 sub to_delete($) {
-	my $ipad = shift;
+    my $ipad = shift;
 
-	return $ipad =~ /^0+\.0+\.0+\.0+$/;
+    return $ipad =~ /^0+\.0+\.0+\.0+$/;
 }
 
 sub is_ipad($) {
@@ -139,71 +140,70 @@ sub is_ipad($) {
 }
 
 sub in {
-	
-	defined (my $line = <>) or die "No line received!";
-	chomp($line);
-	DEBUG and warn dbg(">>> $line\n");
-	return $line;
+    
+    defined (my $line = <>) or die "No line received!";
+    chomp($line);
+    DEBUG and warn dbg(">>> $line\n");
+    return $line;
 }
 
 sub out($) {
-	my $line = shift;
+    my $line = shift;
 
-	print "$line\n" and DEBUG and warn dbg("<<< $line\n");
+    print "$line\n" and DEBUG and warn dbg("<<< $line\n");
 }
 
 sub bake_cookie(@) {
 
-	for ($_[0]) {
-		/^sha1$/ and return sha1_hex(join "" => @_);
-		/^md5$/ and return md5_hex(join "" => @_);
-	}
+    for ($_[0]) {
+        /^sha1$/ and return sha1_hex(join "" => @_);
+        /^md5$/ and return md5_hex(join "" => @_);
+    }
 }
 
 sub make_challenge($) { "CHA=" . shift }
 
 sub make_response_template($) {
-	"RES=" . join "," => map "([^,]+)" => 1 .. shift;
+    "RES=" . join "," => map "([^,]+)" => 1 .. shift;
 }
 
 sub get_password($) {
-	my $site = shift;
+    my $site = shift;
 
-	my $db = new Ping::Admdb::Simple(qw(DBI:mysql:admdb dynadns))
-		or die "Couldn't construct Ping::Admdb::Simple object: ",
-			$DBI::errstr;
-	$db->AdmPas("$site.$domain");
+    my $db = new Ping::Admdb::Simple(qw(DBI:mysql:admdb dynadns))
+        or die "Couldn't construct Ping::Admdb::Simple object: ",
+            $DBI::errstr;
+    $db->AdmPas("$site.$domain");
 }
 
 sub validate_response($$) {
-	my $line = shift;
-	my $c_cookie = shift;
+    my $line = shift;
+    my $c_cookie = shift;
 
-	my $template = make_response_template(4);
-	my ($type, $r_cookie, $site, $ipad) = $line =~ /^$template$/
-		or return undef, '(unknown)', '(unknown)';
-	my $pass = get_password($site) or return undef, $site, $ipad;
-	return $r_cookie eq bake_cookie($type, $site, $pass, $c_cookie, $ipad),
-		$site, $ipad;
+    my $template = make_response_template(4);
+    my ($type, $r_cookie, $site, $ipad) = $line =~ /^$template$/
+        or return undef, '(unknown)', '(unknown)';
+    my $pass = get_password($site) or return undef, $site, $ipad;
+    return $r_cookie eq bake_cookie($type, $site, $pass, $c_cookie, $ipad),
+        $site, $ipad;
 }
 
 sub iso_datetime {
 
-	my @l = localtime;
-	$l[5] += 1900;	
-	$l[4] += 1;
-	sprintf "%04d-%02d-%02d %02d:%02d:%02d" => @l[5, 4, 3, 2, 1, 0];
+    my @l = localtime;
+    $l[5] += 1900;    
+    $l[4] += 1;
+    sprintf "%04d-%02d-%02d %02d:%02d:%02d" => @l[5, 4, 3, 2, 1, 0];
 }
 
 sub dbg(@) {
-	my $verbose = shift;
+    my $verbose = shift;
 
-	if ($verbose) {
-		join '' => iso_datetime, '@', $ENV{TCPREMOTEIP} || "(unknown)", ": ", @_;
-	} else {
-		join '' => iso_datetime, '@x.x.x.x: ', @_;
-	}
+    if ($verbose) {
+        join '' => iso_datetime, '@', $ENV{TCPREMOTEIP} || "(unknown)", ": ", @_;
+    } else {
+        join '' => iso_datetime, '@x.x.x.x: ', @_;
+    }
 }
 
 sub die_callback { die dbg(VERBOSE, @_) }
-	# vim: set cin sw=4 ts=4:
