@@ -1,6 +1,6 @@
 #!/usr/bin/perl -Tw
 #
-## $Id$
+## $Id: dyna_server,v 1.2 2002/02/18 10:37:34 flori Exp $
 #
 # This program is Open Source software. It may be distributed under the
 # terms of the GNU General Public License:
@@ -18,6 +18,8 @@ use Fcntl qw(:flock);
 use Ping::Config qw($domain);
 use Ping::Admdb::Simple;
 use constant DEBUG => 0;
+use constant QUIET => 0;
+use constant VERBOSE => 1;
 
 sub update_data($$);
 sub to_delete($);
@@ -39,6 +41,7 @@ $SIG{__DIE__} = \&die_callback;
 
 $| = 1;
 
+my $LOG_LEVEL = QUIET;
 my ($TINYDNS_ROOT)	= $ENV{ROOT} =~ /(.+)/;
 die "Need ROOT variable in environment to find tinydns root directory!"
 	unless defined $TINYDNS_ROOT;
@@ -51,7 +54,7 @@ my $CHALLENGE_TYPE	= 'sha1';
 my $DYN_DOMAIN		= "dyna.$domain";
 my $DNS_TTL			= 60;
 my $DATA_HEADER = <<"__DATA_HEADER";
-.$DYN_DOMAIN:62.72.90.9:a:259200
+.$DYN_DOMAIN:83.97.42.9:a:259200
 'a.ns.$DYN_DOMAIN:Powered by djbdns - http\072//cr.yp.to/djbdns.html
 __DATA_HEADER
 # '
@@ -67,11 +70,13 @@ __DATA_HEADER
 		$ipad eq "local" and $ipad = $ENV{TCPREMOTEIP};
 		update_data($site, $ipad);
 		out("ACK");
-		warn dbg("$site.$DYN_DOMAIN ",
-			to_delete($ipad) ? "zapping" : "-> $ipad", ": ok.\n");
+		warn dbg($LOG_LEVEL, "$site.$DYN_DOMAIN ",
+			to_delete($ipad) ? "zapping" : "-> ",
+			($LOG_LEVEL == VERBOSE ? $ipad : 'x.x.x.x'),
+			": ok.\n");
 	} else {
 		out("NAK");
-		warn dbg("$site.$DYN_DOMAIN ",
+		warn dbg(VERBOSE, "$site.$DYN_DOMAIN ",
 			to_delete($ipad) ? "zapping" : "-> $ipad", ": denied!\n");
 	}
 }
@@ -137,14 +142,14 @@ sub in {
 	
 	defined (my $line = <>) or die "No line received!";
 	chomp($line);
-	DEBUG and print STDERR ">>> $line\n";
+	DEBUG and warn dbg(">>> $line\n");
 	return $line;
 }
 
 sub out($) {
 	my $line = shift;
 
-	print "$line\n" and DEBUG and print STDERR "<<< $line\n";
+	print "$line\n" and DEBUG and warn dbg("<<< $line\n");
 }
 
 sub bake_cookie(@) {
@@ -191,8 +196,14 @@ sub iso_datetime {
 }
 
 sub dbg(@) {
-	join "" => iso_datetime, '@', $ENV{TCPREMOTEIP} || "(unknown)", ": ", @_;
+	my $verbose = shift;
+
+	if ($verbose) {
+		join '' => iso_datetime, '@', $ENV{TCPREMOTEIP} || "(unknown)", ": ", @_;
+	} else {
+		join '' => iso_datetime, '@x.x.x.x: ', @_;
+	}
 }
 
-sub die_callback { die dbg(@_) }
+sub die_callback { die dbg(VERBOSE, @_) }
 	# vim: set cin sw=4 ts=4:
