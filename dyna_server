@@ -106,7 +106,7 @@ sub update_data($$) {
             $updated++ and next;
             next if to_delete($ipad);
             print NEW "=$site.$DYN_DOMAIN:$ipad:$DNS_TTL\n",
-                "+*.$site.$DYN_DOMAIN:$ipad:$DNS_TTL\n"
+                "+*.$site.$DYN_DOMAIN:$ipad:$DNS_TTL\n";
             next;
         };
         print NEW $_;
