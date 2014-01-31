@@ -1,4 +1,5 @@
 #!/usr/bin/env lua
+-- dynadns client script, that can be run on a openwrt router
 
 -- Compute a md5 sum by calling out to md5sum shell command. Lame, I know.
 function md5(string)
