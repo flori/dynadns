@@ -1,6 +1,6 @@
 #
-# /etc/dyna_client.conf 
-# 
+# /etc/dyna_client.conf
+#
 sitename      = SITENAME
 password      = PASSWORD
 ipaddress     = local

@@ -143,7 +143,7 @@ sub is_ipad($) {
 }
 
 sub in {
-    
+
     defined (my $line = <>) or die "No line received!";
     chomp($line);
     DEBUG and warn dbg(">>> $line\n");
@@ -194,7 +194,7 @@ sub validate_response($$) {
 sub iso_datetime {
 
     my @l = localtime;
-    $l[5] += 1900;    
+    $l[5] += 1900;
     $l[4] += 1;
     sprintf "%04d-%02d-%02d %02d:%02d:%02d" => @l[5, 4, 3, 2, 1, 0];
 }

@@ -4,7 +4,7 @@
 #
 # This program is Open Source software. It may be distributed under the
 # terms of the GNU General Public License:
-#								http://www.gnu.org/copyleft/gpl.html
+#                                http://www.gnu.org/copyleft/gpl.html
 #
 ## Report bugs to <flori@ping.de>.
 #
@@ -17,17 +17,17 @@ use constant DEBUG => 1;
 use vars qw(@types @err $site $pass $ipad $sprt $type);
 
 BEGIN {
-	eval "require Digest::SHA1";
-	unless ($@) {
-		Digest::SHA1->import('sha1_hex');
-		push @types, 'sha1';
-	}
-	eval "require Digest::MD5";
-	unless ($@) {
-		Digest::MD5->import('md5_hex');
-		push @types, 'md5';
-	}
-	@types or die "Please install Digest::SHA1 or Digest::MD5 as a module!";
+    eval "require Digest::SHA1";
+    unless ($@) {
+        Digest::SHA1->import('sha1_hex');
+        push @types, 'sha1';
+    }
+    eval "require Digest::MD5";
+    unless ($@) {
+        Digest::MD5->import('md5_hex');
+        push @types, 'md5';
+    }
+    @types or die "Please install Digest::SHA1 or Digest::MD5 as a module!";
 }
 
 sub in($);
@@ -42,90 +42,90 @@ sub configure_script;
 
 configure_script;
 {
-	my $s;
-	$s = new IO::Socket::INET($sprt) or die "Couldn't connect '$sprt'!"
-		unless DEBUG > 1;
-	my $line = in($s);
-	out($s, make_response($type, $site, $pass, $line, $ipad));
-	$line = in($s);
-	exit ($line eq "ACK" ? 0 : 1);
+    my $s;
+    $s = new IO::Socket::INET($sprt) or die "Couldn't connect '$sprt'!"
+        unless DEBUG > 1;
+    my $line = in($s);
+    out($s, make_response($type, $site, $pass, $line, $ipad));
+    $line = in($s);
+    exit ($line eq "ACK" ? 0 : 1);
 }
 
 sub configure_script {
-	local *_ = *ARGV;
-	
-	# Defaults
-	$sprt = "lilly.ping.de:5353";
-	$type = $types[0];
+    local *_ = *ARGV;
 
-	# Check parameters/configuration
-	$site = shift || '';
-	$site or push @err, "Need a sitename or '-c' as first argument!";
-	if ($site eq '-c') {
-		if (my $cfg = shift) {
-			read_conf $cfg;
-		} else {
-			push @err, "Need a configurtion file if first argument is '-c'!";
-		}
- 		usage(@err) if @err;
-	} else {
-		$pass = shift if @ARGV;
-		$ipad = shift if @ARGV;
-		$sprt = shift if @ARGV;
-		$type = shift if @ARGV; 
-	}
-	$pass or push @err, "Need a password as second argument!";
-	if ($ipad) {
-		if ($ipad ne "local") {
-			is_ipad($ipad) or push @err, "IP address '$ipad' not valid!";
-		}
-	} else {
-		push @err, "Need an ip address or 'local' as third argument!";
-	}
-	$site =~ s/\.ping\.de$//;
-	bake_cookie($type) or push @err, "Invalid type of hash: '$type'!";
+    # Defaults
+    $sprt = "lilly.ping.de:5353";
+    $type = $types[0];
 
-	usage(@err) if @err;
+    # Check parameters/configuration
+    $site = shift || '';
+    $site or push @err, "Need a sitename or '-c' as first argument!";
+    if ($site eq '-c') {
+        if (my $cfg = shift) {
+            read_conf $cfg;
+        } else {
+            push @err, "Need a configurtion file if first argument is '-c'!";
+        }
+         usage(@err) if @err;
+    } else {
+        $pass = shift if @ARGV;
+        $ipad = shift if @ARGV;
+        $sprt = shift if @ARGV;
+        $type = shift if @ARGV;
+    }
+    $pass or push @err, "Need a password as second argument!";
+    if ($ipad) {
+        if ($ipad ne "local") {
+            is_ipad($ipad) or push @err, "IP address '$ipad' not valid!";
+        }
+    } else {
+        push @err, "Need an ip address or 'local' as third argument!";
+    }
+    $site =~ s/\.ping\.de$//;
+    bake_cookie($type) or push @err, "Invalid type of hash: '$type'!";
+
+    usage(@err) if @err;
 }
 
 sub read_conf($) {
-	my $file = shift;
+    my $file = shift;
 
-	if (-r $file) {
-		my $mode = (stat _)[2];
-		if (($mode & 0777) & ~0700) {
-			push @err, "Configuration file isn't only readable by user!";
-			return;
-		}
-		unless (open CFG, $file) {
-			push @err, "Unable to open Configuration file for reading: $!!";
-			return;
-		}
-		my %params = (
-			sitename		=> 'site',
-			password		=> 'pass',
-			ipaddress		=> 'ipad',
-			hashtype		=> 'type',
-			server_port		=> 'server',
-		);
-		my $line_re = qr/^(@{[join '|' => keys %params]})\s*=\s*(.+)/i;
-		while (defined (my $line = <CFG>)) {
-			no strict 'refs';
-			$line =~ s/^\s*(.*?)\s*$/$1/;
-			next if $line =~ /^#/ or $line eq '';
-			my ($key, $val) = $line =~ $line_re;
-			$key = lc $key;
-			if (defined $key) {
-				${$params{$key}} = $val;
-			} else {
-				push @err, "Line $. is unknown format: $_";
-				last;
-			}
-		}
-	} else {
-		push @err, "Configuration file does not exist or is unreadable!";
-	}
-	usage(@err) if @err;
+    if (-r $file) {
+        my $mode = (stat _)[2];
+        if (($mode & 0777) & ~0700) {
+            push @err, "Configuration file isn't only readable by user!";
+            return;
+        }
+        unless (open CFG, $file) {
+            push @err, "Unable to open Configuration file for reading: $!!";
+            return;
+        }
+        my %params = (
+            sitename        => 'site',
+            password        => 'pass',
+            ipaddress        => 'ipad',
+            hashtype        => 'type',
+            server_port        => 'server',
+        );
+        my $line_re = qr/^(@{[join '|' => keys %params]})\s*=\s*(.+)/i;
+        while (defined (my $line = <CFG>)) {
+            no strict 'refs';
+            $line =~ s/^\s*(.*?)\s*$/$1/;
+            next if $line =~ /^#/ or $line eq '';
+            my ($key, $val) = $line =~ $line_re;
+            $key = lc $key;
+            if (defined $key) {
+                ${$params{$key}} = $val;
+            } else {
+                push @err, "Line $. is unknown format: $_";
+                last;
+            }
+        }
+    } else {
+        push @err, "Configuration file does not exist or is unreadable!";
+    }
+    usage(@err) if @err;
 }
 
 sub is_ipad($) {
@@ -137,54 +137,54 @@ sub is_ipad($) {
 }
 
 sub in($) {
-	my $s = shift;
+    my $s = shift;
 
-	$s = \*STDIN if DEBUG > 1;
-	defined (my $line = <$s>) or die "No line received!";	
-	chomp($line);
-	DEBUG and print STDERR ">>> $line\n";
-	return $line;
+    $s = \*STDIN if DEBUG > 1;
+    defined (my $line = <$s>) or die "No line received!";
+    chomp($line);
+    DEBUG and print STDERR ">>> $line\n";
+    return $line;
 }
 
 sub out($$) {
-	my $s = shift;
-	my $line = shift;
+    my $s = shift;
+    my $line = shift;
 
-	$s = \*STDOUT if DEBUG > 1;
-	print $s "$line\n" and DEBUG and print STDERR "<<< $line\n";
+    $s = \*STDOUT if DEBUG > 1;
+    print $s "$line\n" and DEBUG and print STDERR "<<< $line\n";
 }
 
 sub bake_cookie(@) {
 
-	for ($_[0]) {
-		/^sha1$/ and return sha1_hex(join "" => @_);
-		/^md5$/ and return md5_hex(join "" => @_);
-	}
+    for ($_[0]) {
+        /^sha1$/ and return sha1_hex(join "" => @_);
+        /^md5$/ and return md5_hex(join "" => @_);
+    }
 }
 
-sub make_response_string(@) { "RES=" . join "," => @_ } 
+sub make_response_string(@) { "RES=" . join "," => @_ }
 
 sub make_response($$$$$) {
-	my $type = shift;
-	my $site = shift;
-	my $pass = shift;
-	my $line = shift;
-	my $ipad = shift;
+    my $type = shift;
+    my $site = shift;
+    my $pass = shift;
+    my $line = shift;
+    my $ipad = shift;
 
-	my $c_cookie;
-	($c_cookie) = $line =~ /^CHA=(.+)$/
-		or die "Format of challenge '$line' not 'CHA=COOKIE'!";
-	make_response_string($type,
-		bake_cookie($type, $site, $pass, $c_cookie, $ipad), $site, $ipad);
+    my $c_cookie;
+    ($c_cookie) = $line =~ /^CHA=(.+)$/
+        or die "Format of challenge '$line' not 'CHA=COOKIE'!";
+    make_response_string($type,
+        bake_cookie($type, $site, $pass, $c_cookie, $ipad), $site, $ipad);
 }
 
 sub usage {
-	my @usage = @_;
+    my @usage = @_;
 
-	my $basename = basename $0;
-	$site ||= "undef";
-	$ipad ||= "undef";
-	push @usage, <<"__USAGE";
+    my $basename = basename $0;
+    $site ||= "undef";
+    $ipad ||= "undef";
+    push @usage, <<"__USAGE";
 
 Usage: $basename SITENAME PASSWORD IPADDRESS|local [SERVER_PORT] [HASHTYPE]
 Usage: $basename -c CONFIG
@@ -204,6 +204,6 @@ These parameters can also be used in the configuration file CONFIG.
 Report bugs to <flori\@ping.de>.
 __USAGE
 
-	die join "\n" => @usage;
+    die join "\n" => @usage;
 }
-	# vim: set cin sw=4 ts=4:
+    # vim: set cin sw=4 ts=4:
