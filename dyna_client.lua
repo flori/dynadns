@@ -29,6 +29,7 @@ local host, port = "lilly.ping.de", 5353
 local socket = require("socket")
 local ip = assert(socket.dns.toip(host))
 local tcp = assert(socket.tcp())
+tcp:settimeout(10)
 assert(tcp:connect(ip, port))
 local challenge = tcp:receive()
 print(">>> " .. challenge)
